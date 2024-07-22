@@ -1,10 +1,9 @@
-# for servers
+# for server
 import cv2
 import socket
 import numpy as np
 import json
-from image_chunk import ImagePool
-import pickle
+
 
 class Server(object):
     def __init__(self, server_ip: str = '127.0.0.1', server_port: int = 8888):
@@ -18,42 +17,50 @@ class Server(object):
         self.server_ip = server_ip
         self.server_port = server_port
 
-        self.server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((self.server_ip, self.server_port))
-
-        self.image_pool = ImagePool()
+        self.server.listen(1)
 
     def run(self):
         '''Run the server.'''
-        while True:
-            # Receive data from the client
-            data, addr = self.server.recvfrom(65535) # 65535 bytes of data maximum
-            transfer_blob = pickle.loads(data)
+        print('Waiting for connection...')
+        conn, addr = self.server.accept()
+        print('Connected by', addr)
 
-            print(f'Received transfer blob: timestamp = {transfer_blob["timestamp"]}, chunk_id = {transfer_blob["chunk_id"]}')
+        with conn:
+            while True:
+                length_bytes = conn.recv(4)
+                if not length_bytes:
+                    break
+                length = int.from_bytes(length_bytes, 'big')
+                data = b''
+                while len(data) < length:
+                    print(f' > remaining bytes to receive: {length - len(data)}')
+                    # 确保每次读取的字节数是正数且不超过4096
+                    chunk_size = min(4096 * 4, length - len(data))
+                    packet = conn.recv(chunk_size)
+                    if not packet:
+                        break
+                    data += packet
 
-            # Handle the received data
-            self.image_pool.add_transfer_blob(transfer_blob)
+                print('Frame received.')
 
-            if self.image_pool.has_new_image_received():
-                print('New image received.')
-                image = self.image_pool.received_image_pool.pop(0)['image']
-                image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-                cv2.imshow('frame', image)
+                if len(data) != length:
+                    print("Warning: Received data length does not match expected length.")
 
-            if cv2.waitKey(1) == ord('q'):
-                break
+                frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                cv2.imwrite('frame.jpg', frame)
+                cv2.imshow('frame', frame)
+
+                if cv2.waitKey(1) == ord('q'):
+                    break
         
         self.server.close()
         cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    def recv_data_hander(data):
-        frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-        cv2.imshow('frame', frame)
-    
     with open('config.json', 'r') as f:
         config = json.load(f)
     server = Server(server_ip='127.0.0.1', server_port=config['server_port'])
-    server.run(recv_data_hander=recv_data_hander)
+    server.run()

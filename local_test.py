@@ -26,7 +26,7 @@ if __name__ == '__main__':
     client_thread.start()
 
     print('Running test...')
-    for _ in enumerate(range(30)):
+    for _ in enumerate(range(10)):
         time.sleep(1)
     
     print('Test complete.')
