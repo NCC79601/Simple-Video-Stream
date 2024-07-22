@@ -2,6 +2,9 @@
 import cv2
 import socket
 import json
+import pickle
+from image_chunk import make_transfer_blob_list
+import PIL
 
 class Client(object):
     def __init__(self, server_ip: str, server_port: int = 8888):
@@ -25,15 +28,20 @@ class Client(object):
             ret, frame = self.capture.read()
             if not ret:
                 break
-            # Resize the video frame to 480p
-            frame = cv2.resize(frame, (160, 120))
-            # Encode and compress the video frame
-            _, data = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 50])
-            print(f'Frame shape: {frame.shape}')
-            print(f'Data size: {len(data.tobytes())}')
-            # Send the compressed video data
-            self.client.sendto(data.tobytes(), (self.server_ip, self.server_port))
+            
+            # resize the video frame
+            frame = cv2.resize(frame, (1280, 720))
+            frame = PIL.Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
+            # make transfer blobs
+            transfer_blobs = make_transfer_blob_list(frame, chunk_size=40)
+
+            # print(f'transfer_blobs len: {len(transfer_blobs)}')
+            
+            for blob in transfer_blobs:
+                data = pickle.dumps(blob)
+                self.client.sendto(data, (self.server_ip, self.server_port))
+                
         self.capture.release()
         cv2.destroyAllWindows()
 
