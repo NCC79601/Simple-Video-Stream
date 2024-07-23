@@ -49,7 +49,6 @@ class Server(object):
                     print("Warning: Received data length does not match expected length.")
 
                 frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-                cv2.imwrite('frame.jpg', frame)
                 cv2.imshow('frame', frame)
 
                 if cv2.waitKey(1) == ord('q'):

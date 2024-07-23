@@ -20,7 +20,9 @@ class Client(object):
 
     def run(self):
         '''Run the client.'''
+        print(f'Connecting to server {self.server_ip}:{self.server_port}...')
         self.client.connect((self.server_ip, self.server_port))
+        print('Connected to server.')
         while True:
             # 采集视频帧
             ret, frame = self.capture.read()
@@ -45,5 +47,5 @@ class Client(object):
 if __name__ == '__main__':
     with open('config.json', "r") as f:
         config = json.load(f)
-    client = Client(server_ip='127.0.0.1', server_port=config['server_port'])
+    client = Client(server_ip=config['server_ip'], server_port=config['server_port'])
     client.run()
