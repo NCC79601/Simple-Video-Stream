@@ -14,7 +14,7 @@ class Server(object):
         - server_ip: ip of the server, default: `127.0.0.1`
         - server_port: port of the server, default: 8888
         '''
-        self.server_ip = server_ip
+        self.server_ip   = server_ip
         self.server_port = server_port
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

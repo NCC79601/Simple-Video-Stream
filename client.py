@@ -16,7 +16,7 @@ class Client(object):
         self.server_ip = server_ip
         self.server_port = server_port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.capture = cv2.VideoCapture(0)
+        self.capture = cv2.VideoCapture(1)
 
     def run(self):
         '''Run the client.'''
@@ -30,10 +30,11 @@ class Client(object):
                 break
             
             # 缩小 frame
-            frame = cv2.resize(frame, (800, 450))
+            frame = cv2.resize(frame, (224, 126))
+            cv2.imshow('Video Capture', frame)
 
             # 对视频帧进行编码压缩
-            _, data = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 50])
+            _, data = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 30])
             # 发送压缩后的视频数据
             print('Sending frame...')
             data_bytes = data.tobytes()
