@@ -12,3 +12,6 @@ while True:
     cv2.imshow('Video Capture', frame)
     if cv2.waitKey(1) == ord('q'):
         break
+
+cap.release()
+cv2.destroyAllWindows()

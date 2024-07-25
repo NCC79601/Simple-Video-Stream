@@ -1,4 +1,3 @@
-# for server
 import cv2
 import socket
 import numpy as np
@@ -6,19 +5,21 @@ import json
 
 
 class Server(object):
-    def __init__(self, server_ip: str = '127.0.0.1', server_port: int = 8888):
+    def __init__(self, server_ip: str, server_port: int):
         '''
         Initialize a Server object.
 
         Parameters:
-        - server_ip: ip of the server, default: `127.0.0.1`
-        - server_port: port of the server, default: 8888
+        - server_ip: ip of the server, e.g. `127.0.0.1`
+        - server_port: port of the server, e.g. 8888
         '''
-        self.server_ip   = server_ip
+        self.server_ip = server_ip
         self.server_port = server_port
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((self.server_ip, self.server_port))
+
+        # listen(*) 操作系统为新连接请求保持排队的能力的限制
         self.server.listen(1)
 
     def run(self):
@@ -53,7 +54,8 @@ class Server(object):
 
                 if cv2.waitKey(1) == ord('q'):
                     break
-        
+
+        # 关闭服务器
         self.server.close()
         cv2.destroyAllWindows()
 
@@ -61,5 +63,5 @@ class Server(object):
 if __name__ == '__main__':
     with open('config.json', 'r') as f:
         config = json.load(f)
-    server = Server(server_ip='127.0.0.1', server_port=config['server_port'])
+    server = Server(server_ip=config['server_ip'], server_port=config['server_port'])
     server.run()

@@ -1,8 +1,11 @@
-# for client
 import cv2
 import socket
 import json
 import numpy as np
+import time
+
+# 传输的视频帧大小
+frame_size = (224, 126)
 
 class Client(object):
     def __init__(self, server_ip: str, server_port: int = 8888):
@@ -23,14 +26,16 @@ class Client(object):
         print(f'Connecting to server {self.server_ip}:{self.server_port}...')
         self.client.connect((self.server_ip, self.server_port))
         print('Connected to server.')
+        time.sleep(1)
         while True:
             # 采集视频帧
             ret, frame = self.capture.read()
             if not ret:
+                print('Camera offline. Exiting...')
                 break
-            
+
             # 缩小 frame
-            frame = cv2.resize(frame, (224, 126))
+            frame = cv2.resize(frame, frame_size)
             cv2.imshow('Video Capture', frame)
 
             # 对视频帧进行编码压缩
@@ -40,7 +45,7 @@ class Client(object):
             data_bytes = data.tobytes()
             self.client.sendall(len(data_bytes).to_bytes(4, 'big') + data_bytes)
             print('Frame sent.')
-                    
+
         self.capture.release()
         cv2.destroyAllWindows()
 
