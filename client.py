@@ -1,28 +1,21 @@
 import cv2
 import socket
-import json
 import numpy as np
-import time
+import json5 as json
 import argparse
 
 class Client(object):
-    def __init__(self, server_ip: str, server_port: int, camera_id: int, frame_size: tuple, jpeg_quality: int):
+    def __init__(self, server_ip: str, server_port: int):
         '''
         Initialize a Client object.
 
         Parameters:
         - server_ip: IP of the server, e.g. '127.0.0.1'
         - server_port: Port of the server, e.g. 8888
-        - camera_id: ID of the camera to capture video, e.g. 0
-        - frame_size: Size of the video frame, e.g. (1080, 720)
-        - jpeg_quality: Quality of JPEG compression, e.g. 30
         '''
         self.server_ip = server_ip
         self.server_port = server_port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.capture = cv2.VideoCapture(camera_id)
-        self.frame_size = frame_size
-        self.jpeg_quality = jpeg_quality
 
     def run(self):
         '''Run the client.'''
@@ -30,48 +23,52 @@ class Client(object):
             print(f'Connecting to server {self.server_ip}:{self.server_port}...')
             self.client.connect((self.server_ip, self.server_port))
             print('Connected to server.')
-            time.sleep(1)
-
-            prev_time = time.time()
-            frame_count = 0
 
             while True:
-                # Capture video frame
-                ret, frame = self.capture.read()
-                if not ret:
-                    print('Camera offline. Exiting...')
-                    break
+                # Receive the length of the incoming data (4 bytes)
+                length_bytes = self.client.recv(4)
+                assert length_bytes, "Connection closed by the server."
+                length = int.from_bytes(length_bytes, 'big')
 
-                # Resize frame
-                frame = cv2.resize(frame, self.frame_size)
-                cv2.imshow('Video Capture', frame)
+                # Initialize a byte buffer to store the incoming data
+                data = b''
+                while len(data) < length:
+                    remaining_bytes = length - len(data)
+                    print(f'Remaining bytes to receive: {remaining_bytes}')
+                    # Read in chunks of data, up to 4096 bytes
+                    chunk_size = min(4096, remaining_bytes)
+                    packet = self.client.recv(chunk_size)
+                    if not packet:
+                        break
+                    data += packet
 
-                # Encode the video frame as JPEG
-                _, data = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality])
-                # Send the compressed video data
-                data_bytes = data.tobytes()
-                self.client.sendall(len(data_bytes).to_bytes(4, 'big') + data_bytes)
+                if len(data) != length:
+                    print("Warning: Received data length does not match expected length.")
+                    continue
 
-                # Calculate and print FPS
-                frame_count += 1
-                current_time = time.time()
-                elapsed_time = current_time - prev_time
+                print('Frame received.')
 
-                if elapsed_time >= 1.0:
-                    fps = frame_count / elapsed_time
-                    print(f'FPS: {fps:.2f}')
-                    prev_time = current_time
-                    frame_count = 0
+                # Decode the received bytes into an image
+                frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                if frame is None:
+                    print('Failed to decode frame.')
+                    continue
 
+                # Display the frame
+                cv2.imshow('frame', frame)
+
+                # Exit if 'q' key is pressed
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
+        except AssertionError as e:
+            print(f'AssertionError: {e}')
         except Exception as e:
             print(f'Error: {e}')
         finally:
-            self.capture.release()
-            cv2.destroyAllWindows()
             self.client.close()
+            cv2.destroyAllWindows()
+            print('Client shut down.')
 
 
 if __name__ == '__main__':
@@ -84,9 +81,6 @@ if __name__ == '__main__':
         
     client = Client(
         server_ip=config['server_ip'], 
-        server_port=config['server_port'], 
-        camera_id=config['camera_id'],
-        frame_size=tuple(config['frame_size']),
-        jpeg_quality=config['jpeg_quality']
+        server_port=config['server_port']
     )
     client.run()

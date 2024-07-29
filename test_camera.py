@@ -1,6 +1,6 @@
 import cv2
 import time
-import json
+import json5 as json
 
 def get_fps(cap):
     """获取视频的默认帧率（如果可用）"""
