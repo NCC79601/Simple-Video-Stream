@@ -5,21 +5,21 @@ import time
 import argparse
 
 class Server(object):
-    def __init__(self, server_ip: str, server_port: int, camera_id: int, frame_size: tuple, jpeg_quality: int):
+    def __init__(self, hostname: str, port: int, camera_id: int, frame_size: tuple, jpeg_quality: int):
         '''
         Initialize a Server object.
 
         Parameters:
-        - server_ip: IP of the server, e.g. '127.0.0.1'
-        - server_port: Port of the server, e.g. 8888
+        - hostname: IP of the server, e.g. '127.0.0.1'
+        - port: Port of the server, e.g. 8888
         - camera_id: ID of the camera to capture video, e.g. 0
         - frame_size: Size of the video frame, e.g. (1080, 720)
         - jpeg_quality: Quality of JPEG compression, e.g. 30
         '''
-        self.server_ip = server_ip
-        self.server_port = server_port
+        self.hostname = hostname
+        self.port = port
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server.bind((self.server_ip, self.server_port))
+        self.server.bind((self.hostname, self.port))
         self.server.listen(1)
         self.capture = cv2.VideoCapture(camera_id)
         self.frame_size = frame_size
@@ -79,8 +79,8 @@ if __name__ == '__main__':
         config = json.load(f)
         
     server = Server(
-        server_ip=config['server_ip'], 
-        server_port=config['server_port'], 
+        hostname=config['hostname'], 
+        port=config['port'], 
         camera_id=config['camera_id'],
         frame_size=tuple(config['frame_size']),
         jpeg_quality=config['jpeg_quality']

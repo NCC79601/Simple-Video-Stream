@@ -8,13 +8,13 @@ import json
 def run_server():
     with open('config.json', 'r') as f:
         config = json.load(f)
-    server = Server(server_ip='127.0.0.1', server_port=config['server_port'])
+    server = Server(hostname='127.0.0.1', port=config['port'])
     server.run()
 
 def run_client():
     with open('config.json', "r") as f:
         config = json.load(f)
-    client = Client(server_ip='127.0.0.1', server_port=config['server_port'])
+    client = Client(hostname='127.0.0.1', port=config['port'])
     client.run()
 
 if __name__ == '__main__':

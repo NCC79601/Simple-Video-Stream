@@ -1,8 +1,8 @@
 {
     "camera_id": 0,
-    "server_ip": "localhost", // for local debuging
-    // "server_ip": "192.168.202.243",
-    "server_port": 8888,
+    "hostname": "localhost", // for local debuging
+    // "hostname": "192.168.202.243",
+    "port": 8888,
     "frame_size": [1080,720],
     "jpeg_quality": 30
 }

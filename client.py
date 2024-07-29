@@ -5,23 +5,23 @@ import json5 as json
 import argparse
 
 class Client(object):
-    def __init__(self, server_ip: str, server_port: int):
+    def __init__(self, hostname: str, port: int):
         '''
         Initialize a Client object.
 
         Parameters:
-        - server_ip: IP of the server, e.g. '127.0.0.1'
-        - server_port: Port of the server, e.g. 8888
+        - hostname: IP of the server, e.g. '127.0.0.1'
+        - port: Port of the server, e.g. 8888
         '''
-        self.server_ip = server_ip
-        self.server_port = server_port
+        self.hostname = hostname
+        self.port = port
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def run(self):
         '''Run the client.'''
         try:
-            print(f'Connecting to server {self.server_ip}:{self.server_port}...')
-            self.client.connect((self.server_ip, self.server_port))
+            print(f'Connecting to server {self.hostname}:{self.port}...')
+            self.client.connect((self.hostname, self.port))
             print('Connected to server.')
 
             while True:
@@ -61,8 +61,6 @@ class Client(object):
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
-        except AssertionError as e:
-            print(f'AssertionError: {e}')
         except Exception as e:
             print(f'Error: {e}')
         finally:
@@ -80,7 +78,7 @@ if __name__ == '__main__':
         config = json.load(f)
         
     client = Client(
-        server_ip=config['server_ip'], 
-        server_port=config['server_port']
+        hostname=config['hostname'], 
+        port=config['port']
     )
     client.run()
