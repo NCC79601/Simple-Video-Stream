@@ -3,7 +3,6 @@ import socket
 import numpy as np
 import json
 
-
 class Server(object):
     def __init__(self, server_ip: str, server_port: int):
         '''
@@ -16,52 +15,80 @@ class Server(object):
         self.server_ip = server_ip
         self.server_port = server_port
 
+        # Create a socket object
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # Bind the socket to the provided IP and port
         self.server.bind((self.server_ip, self.server_port))
-
-        # listen(*) 操作系统为新连接请求保持排队的能力的限制
+        # Start listening for incoming connections, with a maximum queue of 1
         self.server.listen(1)
 
     def run(self):
         '''Run the server.'''
         print('Waiting for connection...')
+        # Accept a connection
         conn, addr = self.server.accept()
-        print('Connected by', addr)
+        print(f'Connected by {addr}')
 
         with conn:
-            while True:
-                length_bytes = conn.recv(4)
-                if not length_bytes:
-                    break
-                length = int.from_bytes(length_bytes, 'big')
-                data = b''
-                while len(data) < length:
-                    print(f' > remaining bytes to receive: {length - len(data)}')
-                    # 确保每次读取的字节数是正数且不超过4096
-                    chunk_size = min(4096 * 4, length - len(data))
-                    packet = conn.recv(chunk_size)
-                    if not packet:
+            try:
+                while True:
+                    # Receive the length of the incoming data (4 bytes)
+                    length_bytes = conn.recv(4)
+                    assert length_bytes, "Connection closed by the client."
+                    length = int.from_bytes(length_bytes, 'big')
+
+                    # Initialize a byte buffer to store the incoming data
+                    data = b''
+                    while len(data) < length:
+                        remaining_bytes = length - len(data)
+                        print(f'Remaining bytes to receive: {remaining_bytes}')
+                        # Read in chunks of data, up to 4096 bytes
+                        chunk_size = min(4096, remaining_bytes)
+                        packet = conn.recv(chunk_size)
+                        if not packet:
+                            break
+                        data += packet
+
+                    if len(data) != length:
+                        print("Warning: Received data length does not match expected length.")
+                        continue
+
+                    print('Frame received.')
+
+                    # Decode the received bytes into an image
+                    frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                    if frame is None:
+                        print('Failed to decode frame.')
+                        continue
+
+                    # Display the frame
+                    cv2.imshow('frame', frame)
+
+                    # Exit if 'q' key is pressed
+                    if cv2.waitKey(1) == ord('q'):
                         break
-                    data += packet
 
-                print('Frame received.')
+            except AssertionError as e:
+                print(f'AssertionError: {e}')
+            except Exception as e:
+                print(f'Error: {e}')
+            finally:
+                # Close the connection
+                conn.close()
+                print('Connection closed.')
 
-                if len(data) != length:
-                    print("Warning: Received data length does not match expected length.")
-
-                frame = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
-                cv2.imshow('frame', frame)
-
-                if cv2.waitKey(1) == ord('q'):
-                    break
-
-        # 关闭服务器
+        # Close the server socket
         self.server.close()
+        print('Server shut down.')
+        # Destroy all OpenCV windows
         cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
+    # Load configuration from a JSON file
     with open('config.json', 'r') as f:
         config = json.load(f)
+    # Create a server object with the loaded configuration
     server = Server(server_ip=config['server_ip'], server_port=config['server_port'])
+    # Run the server
     server.run()
